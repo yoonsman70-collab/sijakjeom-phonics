@@ -3,10 +3,10 @@
 // ==============================
 
 const LEVEL_INFO = {
-  1: { name: 'Level 1', desc: '알파벳 소리 익히기', className: 'level-1', emoji: '🟤' },
-  2: { name: 'Level 2', desc: '짧은 모음 단어', className: 'level-2', emoji: '🟢' },
-  3: { name: 'Level 3', desc: '매직 e 단어', className: 'level-3', emoji: '🔵' },
-  4: { name: 'Level 4', desc: '자음 블렌드', className: 'level-4', emoji: '🟣' }
+  1: { name: 'Level 1 · 알파벳 소리', desc: '낱글자 소리 배우기', className: 'level-1', emoji: '🟤' },
+  2: { name: 'Level 2 · 단모음', desc: 'CVC 짧은 모음 단어', className: 'level-2', emoji: '🟢' },
+  3: { name: 'Level 3 · 장모음', desc: 'e로 만드는 긴 모음 단어', className: 'level-3', emoji: '🔵' },
+  4: { name: 'Level 4 · 자음 블렌드', desc: '겹자음으로 시작하는 단어', className: 'level-4', emoji: '🟣' }
 };
 
 let currentUser = null;
@@ -56,7 +56,7 @@ function showStep(step, opts = {}) {
   const backBtn = document.getElementById('back-btn');
   const title = document.getElementById('header-title');
   const titles = {
-    1: '시작점 파닉스', 2: currentMode === 'story' ? '스토리 - 레벨선택' : '단어학습 - 레벨선택',
+    1: '시작점 AI 영어 파닉스', 2: currentMode === 'story' ? '스토리 - 레벨선택' : '단어학습 - 레벨선택',
     3: '유닛 선택', 4: '단어 학습', 5: '유닛 복습', 6: '복습 결과',
     7: '스토리 선택', 8: currentStory ? currentStory.title_kr : '스토리 읽기'
   };
@@ -279,8 +279,24 @@ function updateWordUI() {
     nextBtn.innerHTML = '다음 ▶';
   }
 
-  // 화면에 들어오면 자동으로 한 번 읽어줍니다.
-  setTimeout(() => playWordTTS(), 300);
+  // ===== 이미지-소리 싱크 수정 =====
+  // 예전에는 항상 300ms 뒤에 소리를 재생해서, 이미지 로딩이 늦어지면
+  // "소리가 먼저 나고 그림이 나중에 뜨는" 어색한 상황이 생겼습니다.
+  // 이제는 이미지가 실제로 화면에 그려진 직후에 소리를 재생하고,
+  // 중복 재생을 막기 위해 한 번만 재생되도록 안전장치를 둡니다.
+  playOnceWhenImageReady(img, () => playWordTTS());
+}
+
+// 이미지가 로드된 직후(또는 실패해도) 콜백을 딱 한 번만 실행합니다.
+// onload가 여러 이유로 안 불릴 수 있어 최대 600ms 안전장치를 함께 둡니다.
+function playOnceWhenImageReady(imgEl, callback) {
+  let done = false;
+  const run = () => { if (done) return; done = true; callback(); };
+  imgEl.onload = run;
+  imgEl.onerror = run;
+  // 캐시된 이미지는 onload가 안 불릴 수 있어 즉시 완료 여부를 확인
+  if (imgEl.complete && imgEl.naturalWidth > 0) run();
+  setTimeout(run, 600);
 }
 
 function playWordTTS() {
@@ -355,6 +371,7 @@ function loadReviewQuestion() {
   img.src = word.image_path || '';
   updateReviewStatus('마이크를 누르고 그림의 영어 단어를 말해봐!', 'var(--accent-dark)');
   resetReviewMicUI();
+  document.getElementById('review-override-btn').classList.add('hidden');
 }
 
 function updateReviewStatus(text, color) {
@@ -396,12 +413,19 @@ function handleReviewMicTap() {
     reviewRecognition = new SpeechRecognitionAPI();
     reviewRecognition.lang = 'en-US';
     reviewRecognition.interimResults = false;
-    reviewRecognition.maxAlternatives = 1;
+    // ===== 발음 인식 정확도 개선 (1) =====
+    // 예전에는 인식 결과를 1개만 받아서, 브라우저가 살짝 다르게 들은 단어 하나로
+    // 바로 "틀렸다"고 판정했습니다. 이제 최대 5개의 후보 단어를 받아서,
+    // 그 중 하나라도 정답과 맞으면 통과시킵니다 (사람도 여러 후보 중 고르듯이).
+    reviewRecognition.maxAlternatives = 5;
 
     reviewRecognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
+      const alternatives = [];
+      for (let i = 0; i < event.results[0].length; i++) {
+        alternatives.push(event.results[0][i].transcript);
+      }
       stopReviewPulse();
-      checkReviewAnswer(transcript);
+      checkReviewAnswer(alternatives);
     };
     reviewRecognition.onerror = (event) => {
       stopReviewPulse();
@@ -437,31 +461,73 @@ function cleanupReviewMic() {
   reviewBusy = false;
 }
 
-function checkReviewAnswer(transcript) {
+// ===== 발음 인식 정확도 개선 (2): 편집거리(Levenshtein Distance) =====
+// 두 단어가 철자 1글자 정도만 다르면 "거의 같은 소리"로 인식된 것일 가능성이 높습니다.
+// (예: 브라우저가 "big"을 "bik"로 살짝 다르게 인식하는 경우 등)
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (a[i - 1] === b[j - 1]) dp[i][j] = dp[i - 1][j - 1];
+      else dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
+function isCloseMatch(heard, target) {
+  if (!heard) return false;
+  if (heard === target) return true;
+  const heardWords = heard.split(/\s+/).filter(Boolean);
+  if (heardWords.includes(target)) return true;
+  // 3글자 이상 단어는 철자 1개 차이까지는 같은 단어로 인정
+  if (target.length >= 3 && levenshtein(heard, target) <= 1) return true;
+  return heardWords.some(w => target.length >= 3 && levenshtein(w, target) <= 1);
+}
+
+function checkReviewAnswer(transcripts) {
   const word = reviewQueue[currentReviewIndex];
   const clean = s => s.toLowerCase().replace(/[^a-z\s]/g, '').trim();
   const target = clean(word.word);
-  const heard = clean(transcript);
-  // 단어 하나를 말하는 상황이라, 정확히 일치하거나 인식된 문장 안에 단어가 포함되면 통과
-  const heardWords = heard.split(/\s+/).filter(Boolean);
-  const isPass = heard === target || heardWords.includes(target);
 
-  reviewResults.push({ word: word.word, meaning: word.meaning_kr, pass: isPass, heard: transcript });
+  // 인식된 여러 후보(alternatives) 중 하나라도 정답에 가까우면 통과
+  const isPass = transcripts.some(t => isCloseMatch(clean(t), target));
+  const heardDisplay = transcripts[0] || '';
 
   if (isPass) {
+    reviewResults.push({ word: word.word, meaning: word.meaning_kr, pass: true, heard: heardDisplay });
     updateReviewStatus('참 잘했어요! 정답이에요 🎉', '#27AE60');
+    document.getElementById('review-override-btn').classList.add('hidden');
+    setTimeout(() => advanceReview(), 1500);
   } else {
-    updateReviewStatus(`아쉬워요! "${transcript}"라고 들렸어요. 정답은 "${word.word}"예요.`, '#E74C3C');
+    // ===== 신뢰도 보완장치 =====
+    // 자동 판정이 틀렸다고 나와도, 곧바로 "틀렸다"고 기록하지 않고
+    // 학생이 다시 시도하거나, 정말 정확히 말했다고 생각하면 직접 확인하고
+    // 넘어갈 수 있는 버튼을 보여줍니다. (음성인식이 100% 완벽하지 않기 때문)
+    updateReviewStatus(`"${heardDisplay}"라고 들렸어요. 다시 눌러서 또박또박 말해볼까요?`, '#E74C3C');
+    document.getElementById('review-override-btn').classList.remove('hidden');
   }
+}
 
-  setTimeout(() => {
-    currentReviewIndex++;
-    if (currentReviewIndex < reviewQueue.length) {
-      loadReviewQuestion();
-    } else {
-      finishReview();
-    }
-  }, 1800);
+function advanceReview() {
+  currentReviewIndex++;
+  if (currentReviewIndex < reviewQueue.length) {
+    loadReviewQuestion();
+  } else {
+    finishReview();
+  }
+}
+
+// 학생이 "그래도 정확히 말했어요" 버튼을 눌렀을 때 - 정답으로 인정하고 다음 문제로.
+function reviewOverridePass() {
+  const word = reviewQueue[currentReviewIndex];
+  reviewResults.push({ word: word.word, meaning: word.meaning_kr, pass: true, heard: '(직접 확인)' });
+  document.getElementById('review-override-btn').classList.add('hidden');
+  updateReviewStatus('좋아요! 다음 문제로 넘어갈게요.', '#27AE60');
+  setTimeout(() => advanceReview(), 800);
 }
 
 function finishReview() {
@@ -559,7 +625,8 @@ function updateStoryUI() {
   const nextBtn = document.getElementById('story-next-btn');
   nextBtn.innerHTML = currentPageIndex === storyPages.length - 1 ? '완료 🎉' : '다음 ▶';
 
-  setTimeout(() => playStoryTTS(), 300);
+  // 단어 학습 화면과 동일하게, 이미지가 실제로 뜬 직후 소리를 재생합니다.
+  playOnceWhenImageReady(img, () => playStoryTTS());
 }
 
 function playStoryTTS() {

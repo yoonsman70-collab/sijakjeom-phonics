@@ -1,12 +1,14 @@
 // 하비 파닉스 - 서비스 워커
-const CACHE_NAME = 'habi-phonics-v1';
+const CACHE_NAME = 'habi-phonics-v2';
 const APP_SHELL = [
   './',
   './index.html',
   './app.js',
   './manifest.json',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './assets/habi-face.png',
+  './assets/habi-hero.png'
 ];
 
 self.addEventListener('install', (event) => {
