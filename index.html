@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>시작점 파닉스</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#D8C3A5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="하비 파닉스">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Jua&display=swap');
+
+/* ===== 레벨별 색상 테마 (CSS 변수) =====
+   레벨이 바뀔 때 body에 클래스만 바꿔주면 앱 전체 색이 자동으로 바뀝니다.
+   Level1=브라운, Level2=민트, Level3=인디고, Level4=퍼플 */
+:root {
+  --bg: #F9F6F0;
+  --card: #F2EAE1;
+  --accent: #D8C3A5;
+  --accent-dark: #5E4B3C;
+  --shadow-l: #FFFFFF;
+  --shadow-d: #D4C9BE;
+  --blue-accent: #A8C8D9;
+  --blue-dark: #365063;
+}
+body.level-1 {
+  --bg: #F9F6F0; --card: #F2EAE1; --accent: #D8C3A5; --accent-dark: #5E4B3C;
+  --shadow-l: #FFFFFF; --shadow-d: #D4C9BE; --blue-accent: #A8C8D9; --blue-dark: #365063;
+}
+body.level-2 {
+  --bg: #F2FAF7; --card: #E9F5F1; --accent: #9FD6C0; --accent-dark: #2D6B54;
+  --shadow-l: #FFFFFF; --shadow-d: #CDE7DD; --blue-accent: #9FCBD9; --blue-dark: #285A66;
+}
+body.level-3 {
+  --bg: #F3F3FA; --card: #E9EAF5; --accent: #A6ABDD; --accent-dark: #38396B;
+  --shadow-l: #FFFFFF; --shadow-d: #D2D3EC; --blue-accent: #A8B7D9; --blue-dark: #33406B;
+}
+body.level-4 {
+  --bg: #FAF3FB; --card: #F3E9F5; --accent: #CBA0DA; --accent-dark: #5C2E6B;
+  --shadow-l: #FFFFFF; --shadow-d: #E6D2EA; --blue-accent: #C7A8D9; --blue-dark: #4A2E66;
+}
+
+body {
+  font-family: 'Jua', 'Nunito', sans-serif;
+  background-color: var(--bg);
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  touch-action: manipulation;
+  color: var(--accent-dark);
+  transition: background-color 0.3s ease;
+}
+.mobile-frame {
+  width: 100%;
+  max-width: 390px;
+  height: 100vh;
+  max-height: 844px;
+  background-color: var(--card);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(94, 75, 60, 0.2);
+  transition: background-color 0.3s ease;
+}
+@media (min-width: 640px) {
+  .mobile-frame { height: 844px; border-radius: 45px; border: 8px solid #FFFFFF; }
+}
+.clay-card {
+  background-color: var(--card);
+  border-radius: 32px;
+  box-shadow: 8px 8px 16px var(--shadow-d), -8px -8px 16px var(--shadow-l),
+    inset 2px 2px 5px rgba(255,255,255,0.6), inset -3px -3px 6px rgba(180,165,150,0.15);
+  border: 2px solid rgba(255,255,255,0.4);
+  transition: background-color 0.3s ease;
+}
+.clay-btn {
+  background-color: var(--accent);
+  border-radius: 24px;
+  color: var(--accent-dark);
+  box-shadow: 6px 6px 12px var(--shadow-d), -6px -6px 12px var(--shadow-l),
+    inset 2px 2px 4px rgba(255,255,255,0.5), inset -2px -2px 5px rgba(0,0,0,0.08);
+  transition: all 0.2s cubic-bezier(0.4,0,0.2,1), background-color 0.3s ease;
+  border: 2px solid rgba(255,255,255,0.3);
+}
+.clay-btn:active:not(:disabled) {
+  transform: scale(0.95);
+  box-shadow: inset 4px 4px 8px var(--shadow-d), inset -4px -4px 8px var(--shadow-l);
+}
+.clay-btn-blue {
+  background-color: var(--blue-accent);
+  color: var(--blue-dark);
+  box-shadow: 6px 6px 12px var(--shadow-d), -6px -6px 12px var(--shadow-l),
+    inset 2px 2px 4px rgba(255,255,255,0.5), inset -2px -2px 5px rgba(0,0,0,0.08);
+}
+.clay-btn-blue:active:not(:disabled) { transform: scale(0.95); }
+.character-focus { width: 76%; height: 76%; object-fit: contain; object-position: center; }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+@keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+@keyframes popIn { 0%{opacity:0;transform:scale(0.8);} 70%{transform:scale(1.05);} 100%{opacity:1;transform:scale(1);} }
+@keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-8px);} }
+@keyframes pulse-ring { 0%{transform:scale(0.8);opacity:0.6;} 100%{transform:scale(1.6);opacity:0;} }
+.animate-fade-up { animation: fadeUp 0.5s ease-out forwards; }
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+.animate-pop-in { animation: popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+
+.step-container { display: none; flex-direction: column; width: 100%; min-height: 100%; }
+.step-container.active { display: flex; }
+.star-fill { transition: color 0.3s ease, transform 0.3s ease; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }
+.star-filled { color: #FFB347; transform: scale(1.2); }
+::-webkit-scrollbar { display: none; }
+
+#inapp-banner {
+  display: none; position: fixed; top:0; left:0; right:0; z-index: 9999;
+  background: #FFF3CD; color: #7A5A00; font-size: 13px; font-weight: 700;
+  text-align: center; padding: 8px 12px; line-height: 1.4;
+}
+.level-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 100%; padding: 24px 16px; border-radius: 28px;
+}
+.word-image-box {
+  width: 100%; aspect-ratio: 1/1; border-radius: 28px; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; background: #fff;
+}
+.word-image-box img { width: 100%; height: 100%; object-fit: contain; }
+</style>
+</head>
+<body class="level-1">
+<div id="inapp-banner">⚠️ 카카오톡/네이버 등 인앱 브라우저에서는 마이크가 제한될 수 있어요.<br>우측 상단 메뉴에서 "다른 브라우저로 열기(Safari/Chrome)"를 선택해주세요.</div>
+
+<div class="mobile-frame">
+  <div id="header" class="pt-12 pb-4 px-6 flex flex-col z-20 absolute top-0 w-full" style="background: linear-gradient(180deg, var(--card) 80%, rgba(0,0,0,0) 100%); pointer-events:none;">
+    <div class="flex items-center justify-between h-8 pointer-events-auto">
+      <button onclick="goBack()" id="back-btn" class="text-[var(--accent-dark)] font-bold text-2xl hidden active:scale-90 transition-transform">⬅️</button>
+      <div class="flex-1 text-center font-bold text-xl tracking-wide" id="header-title" style="color: var(--accent-dark);">시작점 파닉스</div>
+      <div class="w-8"></div>
+    </div>
+  </div>
+
+  <div class="flex-1 overflow-y-auto overflow-x-hidden pt-24 pb-6 px-6 relative" id="main-content">
+
+    <!-- Step 0: 로그인 -->
+    <div id="step-0" class="step-container active animate-fade-in flex-col items-center justify-center h-full">
+      <div class="w-32 h-32 rounded-full overflow-hidden flex items-center justify-center mb-6 clay-card border-4 border-white text-6xl">
+        <img src="assets/habi-face.png" alt="HABI" class="character-focus" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <span style="display:none; align-items:center; justify-content:center; width:100%; height:100%;">🐹</span>
+      </div>
+      <h2 class="text-xl font-extrabold mb-1">로그인해서 시작해요!</h2>
+      <p class="text-sm opacity-70 mb-6">하비와 함께 파닉스 공부하러 가요</p>
+      <div class="w-full max-w-xs space-y-3">
+        <input id="login-username" type="text" placeholder="아이디" autocomplete="username"
+          onkeydown="if(event.key==='Enter') document.getElementById('login-password').focus()"
+          class="w-full px-4 py-3 rounded-2xl clay-card border-2 border-white font-bold text-center focus:outline-none">
+        <input id="login-password" type="password" placeholder="비밀번호" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter') handleLogin()"
+          class="w-full px-4 py-3 rounded-2xl clay-card border-2 border-white font-bold text-center focus:outline-none">
+        <button id="login-btn" onclick="handleLogin()" class="w-full clay-btn-blue py-3 rounded-2xl font-extrabold transition-transform active:scale-95">로그인</button>
+        <p id="login-error" class="text-center text-sm font-bold text-red-500 min-h-[20px]"></p>
+      </div>
+      <p class="text-xs opacity-60 mt-6 text-center leading-relaxed">아이디와 비밀번호는<br>선생님(원장님)께 받아주세요!</p>
+    </div>
+
+    <!-- Step 1: 홈 메뉴 -->
+    <div id="step-1" class="step-container animate-fade-in justify-between pb-4">
+      <div class="flex flex-col items-center mt-4">
+        <div class="w-40 h-40 rounded-full overflow-hidden flex items-center justify-center mb-6 animate-float clay-card border-4 border-white z-10 relative text-6xl">
+          <img src="assets/habi-face.png" alt="HABI" class="character-focus" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <span style="display:none; align-items:center; justify-content:center; width:100%; height:100%;">🐹</span>
+        </div>
+        <div class="clay-card px-6 py-6 w-full max-w-[320px] relative mt-[-1rem] pt-8">
+          <p class="text-center text-lg leading-relaxed">
+            안녕! 난 너의 파닉스 친구 <span class="font-extrabold text-2xl" style="color: var(--blue-dark);">HABI(하비)</span>야!
+          </p>
+        </div>
+      </div>
+      <div class="w-full mt-8 mb-4 space-y-3">
+        <button onclick="goToWordLevelSelect()" class="clay-btn clay-btn-blue w-full flex items-center justify-center py-5">
+          <span class="text-xl tracking-wide">📖 단어 학습하기</span>
+        </button>
+        <button onclick="goToStoryLevelSelect()" class="clay-btn w-full flex items-center justify-center py-5">
+          <span class="text-xl tracking-wide">📚 스토리 읽기</span>
+        </button>
+        <p class="text-center text-xs opacity-60 mt-3">
+          <span id="welcome-username"></span>
+          <a href="#" onclick="handleLogout(); return false;" class="underline">다른 계정으로 로그인</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Step 2: 레벨 선택 (단어학습/스토리 공용) -->
+    <div id="step-2" class="step-container animate-fade-up">
+      <h2 class="text-2xl font-extrabold mb-2 mt-4 text-center" id="level-select-title">레벨을 선택해요</h2>
+      <p class="text-center text-lg mb-6 opacity-70" id="level-select-sub">원하는 레벨을 선택해봐!</p>
+      <div id="level-list" class="flex flex-col gap-4 pb-12"></div>
+    </div>
+
+    <!-- Step 3: 유닛 선택 (단어학습) -->
+    <div id="step-3" class="step-container animate-fade-up">
+      <h2 class="text-2xl font-extrabold mb-2 mt-4 text-center" id="unit-select-title">유닛을 선택해요</h2>
+      <div id="unit-list" class="flex flex-col gap-3 pb-12"></div>
+    </div>
+
+    <!-- Step 4: 단어 학습 (듣기 전용) -->
+    <div id="step-4" class="step-container animate-fade-in flex-col pb-4 h-full">
+      <div class="flex justify-between items-center mb-4 mt-2">
+        <span class="opacity-80 text-base px-4 py-2 clay-card font-bold" id="word-counter">단어 1 / 10</span>
+        <div class="clay-btn-blue px-4 py-2 font-bold text-sm" id="unit-badge">Unit 1</div>
+      </div>
+      <div class="clay-card p-6 w-full mb-6 flex flex-col items-center">
+        <div class="word-image-box mb-5" id="word-image-wrap">
+          <img id="word-image" src="" alt="" onerror="this.style.display='none';">
+        </div>
+        <h3 class="text-4xl text-center mb-2" id="word-eng" style="font-family:'Nunito',sans-serif; font-weight:900;">cat</h3>
+        <p class="text-xl text-center opacity-80" id="word-kor">고양이</p>
+      </div>
+      <div class="flex flex-col items-center flex-1 justify-end pb-6">
+        <button onclick="playWordTTS()" class="w-24 h-24 clay-btn-blue rounded-full flex items-center justify-center text-5xl mb-6 active:scale-90 transition-transform">🔊</button>
+        <div class="flex gap-4 w-full">
+          <button onclick="prevWord()" class="clay-btn flex-1 py-4 font-bold text-lg">◀ 이전</button>
+          <button onclick="nextWord()" class="clay-btn-blue flex-1 py-4 font-bold text-lg" id="word-next-btn">다음 ▶</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: 유닛 복습 (마이크 발음 체크) -->
+    <div id="step-5" class="step-container animate-fade-in flex-col pb-4 h-full">
+      <div class="flex justify-between items-center mb-6 mt-2">
+        <span class="opacity-80 text-base px-4 py-2 clay-card font-bold" id="review-counter">문제 1 / 8</span>
+        <button onclick="playReviewTTS()" class="w-12 h-12 clay-btn flex justify-center items-center text-2xl">🔊</button>
+      </div>
+      <div class="clay-card p-6 w-full mb-6 flex flex-col items-center">
+        <div class="word-image-box mb-4" id="review-image-wrap">
+          <img id="review-image" src="" alt="" onerror="this.style.display='none';">
+        </div>
+        <p class="text-lg text-center opacity-80" id="review-kor">고양이</p>
+      </div>
+      <div class="flex flex-col items-center flex-1">
+        <p class="text-base mb-4 font-bold text-center" id="review-instruction">그림을 보고 영어 단어를 말해봐!</p>
+        <div class="relative flex flex-col items-center justify-center mt-auto mb-8">
+          <div id="review-mic-pulse" class="absolute w-32 h-32 rounded-full opacity-0 pointer-events-none" style="background: var(--accent);"></div>
+          <button id="review-mic-btn" onclick="handleReviewMicTap()" class="relative z-10 w-24 h-24 clay-btn flex items-center justify-center mb-4 transition-colors">
+            <span class="text-4xl" id="review-mic-icon">🎤</span>
+          </button>
+          <p id="review-mic-status" class="font-bold text-base h-10 text-center w-full min-w-[250px]">마이크를 누르고 말해보세요!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6: 복습 결과 -->
+    <div id="step-6" class="step-container flex-col items-center h-full animate-pop-in relative pb-4">
+      <div class="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center mb-4 animate-float clay-card border-4 border-white z-10 mt-4 text-5xl">
+        <img src="assets/habi-face.png" alt="HABI" class="character-focus" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <span style="display:none; align-items:center; justify-content:center; width:100%; height:100%;">🐹</span>
+      </div>
+      <h2 class="text-2xl font-black text-center mb-2 z-10">복습 완료!</h2>
+      <p class="text-lg font-bold mb-4 z-10" id="review-score">8문제 중 7개 맞았어요!</p>
+      <div id="review-result-list" class="w-full flex-1 overflow-y-auto mb-4 px-1 rounded-xl"></div>
+      <button onclick="goHome()" class="clay-btn-blue w-full flex items-center justify-center py-4 mt-auto">
+        <span class="text-xl font-bold">홈으로 돌아가기</span>
+      </button>
+    </div>
+
+    <!-- Step 7: 스토리 목록 -->
+    <div id="step-7" class="step-container animate-fade-up">
+      <h2 class="text-2xl font-extrabold mb-2 mt-4 text-center">스토리를 선택해요</h2>
+      <div id="story-list" class="flex flex-col gap-3 pb-12"></div>
+    </div>
+
+    <!-- Step 8: 스토리 읽기 -->
+    <div id="step-8" class="step-container animate-fade-in flex-col pb-4 h-full">
+      <div class="flex justify-between items-center mb-4 mt-2">
+        <span class="opacity-80 text-sm px-4 py-2 clay-card font-bold" id="story-page-counter">1 / 7</span>
+        <button onclick="playStoryTTS()" class="w-12 h-12 clay-btn-blue flex justify-center items-center text-2xl rounded-full">🔊</button>
+      </div>
+      <div class="clay-card p-4 w-full mb-4 flex flex-col items-center flex-1">
+        <div class="word-image-box mb-4" id="story-image-wrap" style="max-height: 45%;">
+          <img id="story-image" src="" alt="" onerror="this.style.display='none';">
+        </div>
+        <p class="text-xl text-center leading-relaxed mb-2" id="story-eng" style="font-family:'Nunito',sans-serif; font-weight:800;"></p>
+        <p class="text-base text-center opacity-70" id="story-kor"></p>
+      </div>
+      <div class="flex gap-4 w-full pb-2">
+        <button onclick="prevStoryPage()" class="clay-btn flex-1 py-4 font-bold text-lg">◀ 이전</button>
+        <button onclick="nextStoryPage()" class="clay-btn-blue flex-1 py-4 font-bold text-lg" id="story-next-btn">다음 ▶</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
