@@ -61,7 +61,12 @@ function showStep(step, opts = {}) {
     7: '스토리 선택', 8: currentStory ? currentStory.title_kr : '스토리 읽기'
   };
   title.innerText = titles[step] || '시작점 파닉스';
-  backBtn.classList.toggle('hidden', step === 0 || step === 1);
+  // 뒤로가기 버튼을 아예 지워버리면(hidden) 오른쪽 빈 칸과 균형이 안 맞아
+  // 타이틀이 중앙에서 살짝 왼쪽으로 밀려 보입니다. 자리는 그대로 두고
+  // 안 보이게만(invisible) 처리해서 항상 정확히 중앙 정렬되도록 합니다.
+  const shouldHideBack = step === 0 || step === 1;
+  backBtn.classList.toggle('invisible', shouldHideBack);
+  backBtn.classList.toggle('pointer-events-none', shouldHideBack);
 
   document.getElementById('main-content').scrollTop = 0;
 }
