@@ -161,10 +161,10 @@ body {
       <h2 class="text-xl font-extrabold mb-1">로그인해서 시작해요!</h2>
       <p class="text-sm opacity-70 mb-6">하비와 함께 파닉스 공부하러 가요</p>
       <div class="w-full max-w-xs space-y-3">
-        <input id="login-username" type="text" placeholder="아이디" autocomplete="username"
+        <input id="login-username" type="text" placeholder="아이디" autocomplete="username" maxlength="8"
           onkeydown="if(event.key==='Enter') document.getElementById('login-password').focus()"
           class="w-full px-4 py-3 rounded-2xl clay-card border-2 border-white font-bold text-center focus:outline-none">
-        <input id="login-password" type="password" placeholder="비밀번호" autocomplete="current-password"
+        <input id="login-password" type="password" placeholder="비밀번호" autocomplete="current-password" maxlength="12"
           onkeydown="if(event.key==='Enter') handleLogin()"
           class="w-full px-4 py-3 rounded-2xl clay-card border-2 border-white font-bold text-center focus:outline-none">
         <button id="login-btn" onclick="handleLogin()" class="w-full clay-btn-blue py-3 rounded-2xl font-extrabold transition-transform active:scale-95">로그인</button>
